@@ -19,9 +19,8 @@ var host = localhost:{{.Port}}
 
 func NewServer(dir string, port string) {
 	Gport = port
-	
 	http.Handle("/", http.FileServer(http.Dir(dir)))
-	http.HandleFunc("/go/go.js", viewJS)
+	http.HandleFunc("/go/portinfo.js", viewJS)
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		panic(err)
@@ -41,8 +40,8 @@ func viewJS(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	var p = flag.String("p", "default", "port")
-	var d = flag.String("d", "default", "directory")
+	var p = flag.String("p", "8080", "port")
+	var d = flag.String("d", "./", "directory")
 	flag.Parse()
 	fmt.Println("start server : localhost:", *p, " <=== ", *d)
 	fmt.Println("to stop server, pls ctrl-c")
