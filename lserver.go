@@ -17,11 +17,11 @@ var Body string = `
 var host = localhost:{{.Port}}
 `
 
-func NewServer(dir string, port string) {
+func NewServer(dir, addr, port string) {
 	Gport = port
 	http.Handle("/", http.FileServer(http.Dir(dir)))
 	http.HandleFunc("/go/portinfo.js", viewJS)
-	err := http.ListenAndServe(":"+port, nil)
+	err := http.ListenAndServe(addr+":"+port, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -40,10 +40,18 @@ func viewJS(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	var p = flag.String("p", "8080", "port")
-	var d = flag.String("d", "./", "directory")
+	var p = flag.String("p", "8080", "Set port")
+	var d = flag.String("d", "./", "Set directory")
+	var pub = flag.Bool("pub", false, "Public server(default is false)")
+	addr := ""
 	flag.Parse()
-	fmt.Println("start server : localhost:", *p, " <=== ", *d)
-	fmt.Println("to stop server, pls ctrl-c")
-	NewServer(*d, *p)
+	if !*pub {
+		addr = "0.0.0.0"
+		fmt.Println("Start server @ 0.0.0.0:" + *p + ":" + *d)
+	} else {
+		addr = ""
+		fmt.Println("Start server @ localhost:" + *p + ":" + *d)
+	}
+	fmt.Println("To stop server, pls ctrl-c")
+	NewServer(*d, addr, *p)
 }
