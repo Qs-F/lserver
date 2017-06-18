@@ -17,9 +17,16 @@ var Body string = `
 var host = localhost:{{.Port}}
 `
 
+func cors(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		h.ServeHTTP(w, r)
+	})
+}
+
 func NewServer(dir, addr, port string) {
 	Gport = port
-	http.Handle("/", http.FileServer(http.Dir(dir)))
+	http.Handle("/", cors(http.FileServer(http.Dir(dir))))
 	http.HandleFunc("/go/portinfo.js", viewJS)
 	err := http.ListenAndServe(addr+":"+port, nil)
 	if err != nil {
