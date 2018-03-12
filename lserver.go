@@ -60,7 +60,7 @@ func log(s string) {
 	logrus.Infoln("Time: " + time.Now().Format(time.StampMilli) + "    Req: " + s)
 }
 
-func logWrapper(h http.Handler) http.Handler {
+func connLog(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log(r.URL.Path)
 		h.ServeHTTP(w, r)
@@ -79,7 +79,7 @@ func main() {
 	o := handleFlag()
 	flag.Parse()
 	s := o.newServer()
-	handler := logWrapper(s.getHandler())
+	handler := connLog(s.getHandler())
 	log("Starting Server at… [ " + s.Addr + " ]")
 	http.Handle("/", handler)
 	err := http.ListenAndServe(s.Addr, nil)
