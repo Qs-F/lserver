@@ -2,6 +2,10 @@
 
 `lserver` is a light tool to build local file server easily.
 
+## Development Status
+
+[![Build Status](https://travis-ci.org/Qs-F/lserver.svg?branch=master)](https://travis-ci.org/Qs-F/lserver)
+
 ## Installation
 
 `go get -u github.com/Qs-F/lserver`
