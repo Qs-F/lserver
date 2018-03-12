@@ -2,20 +2,52 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net/http"
-	"text/template"
+	"time"
+
+	"github.com/Sirupsen/logrus"
 )
 
-type View struct {
-	Port string
+type Option struct {
+	Port      *string // which port server use
+	Directory *string // which directory server publish
+	IsPublic  *bool   // internallly public, or globally public
+	IsNotCORS *bool   // availability of CORS
 }
 
-var Gport string
+func handleFlag() *Option {
+	return &Option{
+		Port:      flag.String("p", "8080", "Server exposing port (default is 8080)"),
+		Directory: flag.String("d", "./", "Server exposing directory (default is current directory)"),
+		IsPublic:  flag.Bool("pub", false, "internal server or public server (default is internal)"),
+		IsNotCORS: flag.Bool("cors", false, "Use or not CORS (default is using, adding this flag means forbidden CORS)"),
+	}
+}
 
-var Body string = `
-var host = localhost:{{.Port}}
-`
+type HTTPHeader struct {
+	Key   string
+	Value string
+}
+
+type Server struct {
+	Addr      string
+	Directory string
+	CORS      bool
+}
+
+func (o *Option) newServer() *Server {
+	addr := ""
+	if *o.IsPublic {
+		addr = "localhost"
+	} else {
+		addr = "0.0.0.0"
+	}
+	return &Server{
+		Addr:      addr + ":" + *o.Port,
+		Directory: *o.Directory,
+		CORS:      !*o.IsNotCORS,
+	}
+}
 
 func cors(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -24,41 +56,34 @@ func cors(h http.Handler) http.Handler {
 	})
 }
 
-func NewServer(dir, addr, port string) {
-	Gport = port
-	http.Handle("/", cors(http.FileServer(http.Dir(dir))))
-	http.HandleFunc("/go/portinfo.js", viewJS)
-	err := http.ListenAndServe(addr+":"+port, nil)
-	if err != nil {
-		panic(err)
-	}
+func log(s string) {
+	logrus.Infoln("Time: " + time.Now().Format(time.StampMilli) + "    Req: " + s)
 }
 
-func viewJS(w http.ResponseWriter, r *http.Request) {
-	js := View{Gport}
-	tmpl, err := template.New("new").Parse(Body)
-	if err != nil {
-		panic(err)
-	}
-	err = tmpl.Execute(w, js)
-	if err != nil {
-		panic(err)
+func logWrapper(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log(r.URL.Path)
+		h.ServeHTTP(w, r)
+	})
+}
+
+func (s *Server) getHandler() http.Handler {
+	if s.CORS {
+		return cors(http.FileServer(http.Dir(s.Directory)))
+	} else {
+		return http.FileServer(http.Dir(s.Directory))
 	}
 }
 
 func main() {
-	var p = flag.String("p", "8080", "Set port")
-	var d = flag.String("d", "./", "Set directory")
-	var pub = flag.Bool("pub", false, "Public server(default is false)")
-	addr := ""
+	o := handleFlag()
 	flag.Parse()
-	if !*pub {
-		addr = "0.0.0.0"
-		fmt.Println("Start server @ 0.0.0.0:" + *p + ":" + *d)
-	} else {
-		addr = ""
-		fmt.Println("Start server @ localhost:" + *p + ":" + *d)
+	s := o.newServer()
+	handler := logWrapper(s.getHandler())
+	log("Starting Server at… [ " + s.Addr + " ]")
+	http.Handle("/", handler)
+	err := http.ListenAndServe(s.Addr, nil)
+	if err != nil {
+		logrus.Fatalln(err.Error())
 	}
-	fmt.Println("To stop server, pls ctrl-c")
-	NewServer(*d, addr, *p)
 }
