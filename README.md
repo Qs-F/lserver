@@ -1,30 +1,88 @@
-# cmd lserver
+# cmd `lserver`
 
-`lserver` is a light tool to build local file server easily.
+Next generation static server
 
-## Development Status
+## Design
 
-[![Build Status](https://travis-ci.org/Qs-F/lserver.svg?branch=master)](https://travis-ci.org/Qs-F/lserver)
+- `-p` or `--port`
 
-## Installation
+Configration of port number. Accept only int numbers
 
-`go get -u github.com/Qs-F/lserver`
+- `-d` or `--directory`
 
-## Usage
+Configration of directory which will be published.
 
-- `-p`: Set server's exposing port (default is 8080)
-- `-d`: Set which directory to expose (default is current directory)
-- `-pub`: Switch internal or external server (default is internal)
-- `-cors`: Swicth to use CORS or not (default is **use**)
+- `-i` or `--information`
 
-## Example
+Show information or not. Default is showing.
 
-`lserver -p 6060`
+- `-pub`
 
-Expose current directory at `0.0.0.0:6060`.
+Make accessiblility public or private in the internal network. Default is private.
 
----
+- `-cors`
 
-`lserver -p 6060 -pub -cors`
+Configraiton on CORS. Default is allow from Cross Origin Access.
 
-Expose current directory at `localhost:6060`, and forbid to access over cross origin.
+- `-v` or `--values`
+
+Configration of values. This option must be setted at the last of line. All the options after this will be treated as values.
+
+The configration style is that:
+
+```shell
+lserver -v hoge=fuga fuga=hoge g=google
+```
+
+And in file, you can write like this way:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+</head>
+<body>
+  <p>$$hoge$$</p>
+</body>
+</html>
+```
+
+This will work on any ASCII text file. And if there is not matching value given, the part will be kept as it is.
+
+- `-r` or `--replace`
+
+The basic is the same as `-v` option; however, the way to use is different. The example is following:
+
+```shell
+lserver -r hoge=fuga fuga=hoge
+```
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+</head>
+<body>
+  <p>hoge</p>
+</body>
+</html>
+```
+
+And the last product is following:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+</head>
+<body>
+  <p>fuga</p>
+</body>
+</html>
+```
