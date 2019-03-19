@@ -2,17 +2,14 @@ package lserver
 
 import (
 	"errors"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 )
 
-type File struct {
-	Dir          string
-	Original     string
-	Substitution string
-}
+type Dir string
 
 func mapDirOpenError(originalErr error, name string) error {
 	if os.IsNotExist(originalErr) || os.IsPermission(originalErr) {
@@ -35,7 +32,7 @@ func mapDirOpenError(originalErr error, name string) error {
 	return originalErr
 }
 
-func (d Dir) Open(name string) (File, error) {
+func (d Dir) Open(name string) (http.File, error) {
 	if filepath.Separator != '/' && strings.ContainsRune(name, filepath.Separator) {
 		return nil, errors.New("http: invalid character in file path")
 	}
@@ -44,9 +41,15 @@ func (d Dir) Open(name string) (File, error) {
 		dir = "."
 	}
 	fullName := filepath.Join(dir, filepath.FromSlash(path.Clean("/"+name)))
-	f, err := os.Open(fullName)
+	// fi is short of ttp.file interface
+	fi, err := os.Open(fullName)
 	if err != nil {
 		return nil, mapDirOpenError(err, fullName)
 	}
-	return f, nil
+	// TODO case switch {ascii, binary} ->. ascii: rewrite f's content
+	return fi, nil
 }
+
+// // To satisfy io.Reader
+// func (f *File) Read(b []byte) (int, error) {
+// }
