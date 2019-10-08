@@ -5,22 +5,27 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Qs-F/rewrite"
 	"github.com/sirupsen/logrus"
 )
 
 type Option struct {
-	Port      *string // which port server use
-	Directory *string // which directory server publish
-	IsPublic  *bool   // internallly public, or globally public
-	IsNotCORS *bool   // availability of CORS
+	Port       *string // which port server use
+	Directory  *string // which directory server publish
+	RewriteOld *string // Rewrite old string
+	RewriteNew *string // Rewrite new string
+	IsPublic   *bool   // internallly public, or globally public
+	IsNotCORS  *bool   // availability of CORS
 }
 
 func handleFlag() *Option {
 	return &Option{
-		Port:      flag.String("p", "8080", "Server exposing port (default is 8080)"),
-		Directory: flag.String("d", "./", "Server exposing directory (default is current directory)"),
-		IsPublic:  flag.Bool("pub", false, "internal server or public server (default is internal)"),
-		IsNotCORS: flag.Bool("cors", false, "Use or not CORS (default is using, adding this flag means forbidden CORS)"),
+		Port:       flag.String("p", "8080", "Server exposing port (default is 8080)"),
+		Directory:  flag.String("d", "./", "Server exposing directory (default is current directory)"),
+		RewriteOld: flag.String("old", "", "Rewrite old"),
+		RewriteNew: flag.String("new", "", "Rewrite new"),
+		IsPublic:   flag.Bool("pub", false, "internal server or public server (default is internal)"),
+		IsNotCORS:  flag.Bool("cors", false, "Use or not CORS (default is using, adding this flag means forbidden CORS)"),
 	}
 }
 
@@ -33,6 +38,7 @@ type Server struct {
 	Addr      string
 	Directory string
 	CORS      bool
+	Rewrite   *rewrite.Rule
 }
 
 func (o *Option) newServer() *Server {
@@ -46,12 +52,13 @@ func (o *Option) newServer() *Server {
 		Addr:      addr + ":" + *o.Port,
 		Directory: *o.Directory,
 		CORS:      !*o.IsNotCORS,
+		Rewrite:   &rewrite.Rule{{Old: *o.RewriteOld, New: *o.RewriteNew}},
 	}
 }
 
 func cors(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		// w.Header().Set("Access-Control-Allow-Origin", "*")
 		h.ServeHTTP(w, r)
 	})
 }
@@ -69,9 +76,9 @@ func connLog(h http.Handler) http.Handler {
 
 func (s *Server) getHandler() http.Handler {
 	if s.CORS {
-		return cors(http.FileServer(http.Dir(s.Directory)))
+		return cors(s.Rewrite.Map(http.FileServer(http.Dir(s.Directory))))
 	} else {
-		return http.FileServer(http.Dir(s.Directory))
+		return s.Rewrite.Map(http.FileServer(http.Dir(s.Directory)))
 	}
 }
 
